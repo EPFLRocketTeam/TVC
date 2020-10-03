@@ -33,4 +33,4 @@ To launch the code ... use the following codes:
 <!--Liste des gens qui ont contribuer a développer le projet -->
 
 ## Project Status
-This project started in Oct. 3 2020 and is still in progress.
+This project started in Oct. 3 2020 and is still in progress as part of master and semester projects at EPFL.
