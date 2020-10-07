@@ -8,23 +8,51 @@
 #include "stdlib.h"
 
 typedef struct{
-    double **K_mat;
-    unsigned int input_size;
+    double **R;
+    double **S;
+    double **T;
+    unsigned int n_R;
+    unsigned int n_S;
+    unsigned int n_T;
     double max;
     double min;
     double dt;
-}KImpl;
+}RSTImpl;
 
 typedef struct{
     double **A;
     double **B;
-    double **C;
-    double **D;
-    unsigned int state_size;
-}LTISystem;
+    unsigned int _n_A;
+    unsigned int _n_B;
+    unsigned int _dimension;
+}LTISystemImpl;
 
-void computeInput(KImpl* K, double prev_state[], double dist[], double input[]);
+typedef struct {
+    double **input_u;
+    double **reference_r;
+    double **output_y;
 
-void computeOutput(LTISystem* LTI ,double prev_state[], double input[], double next_state[]);
+    unsigned int ref_size;
+    unsigned int in_size;
+    unsigned int out_size;
+    unsigned int _dimension;
+}Data;
+
+typedef struct {
+    double * output_y;
+    double **
+}Estimation;
+
+
+void computeError(RSTImpl* K, Data* data, Estimation* estimation);
+void estimateOutput(LTISystemImpl* LTI, Data* data, Estimation* estimation);
+
+
+void computeState(LTISystemImpl* LTI, Data* data, double next_state[]);
+
+
+void addInput(Data* data, double next_state[]);
+void addState(Data* data, double next_input[]);
+void addOutput (Data* data, double next_output);
 
 #endif /* ROBUST_CONTROLLER_H_ */
