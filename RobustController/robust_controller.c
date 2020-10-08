@@ -5,26 +5,23 @@
 
 
 void computeError(RSTImpl* K, Data* data, Estimation* estimation){
+    for (int i = 0; i < data->out_size; i++){
+        double inSum =  estimation->output_y[i] * K ->T[i];
+        double outSum = 0;
 
-    unsigned int _input_size = K->input_size;
-    unsigned int _order = K ->order;
-    int i; int j; int k; double temp;
-    for (i = 0; i < _order;i++){
-        for (j = 0; j< _input_size; j++){
-            temp = 0;
-            for(k = 0; k<_input_size;k++){
-                temp +=  K->K_mat[i][j][k]*data->state_x[i][k];
-            }
-            data->input_u[i][j] = -temp + data->dist[i][j];
+        for (int j = 0; j < K->n_R; ++j) {
+            outSum += data->output_y[i][j] * K->R[i][j];
         }
+        estimation->error[i] = inSum - outSum;
+
     }
 }
 
-void computeState(LTISystemImpl* LTI, Data* data, double next_state[]){
+void computeCommand(LTISystemImpl* LTI, Data* data, double next_state[]){
     unsigned int _input_size = LTI->state_size;
     unsigned int _order = data->order;
     int i; int j; double sum1; double sum2 = 0;
-    for (i = 0; i < _input_size; i++){
+    for (i = 0; i < data->ref_size; i++){
         sum1 = 0;
         for (j = 0; j < _input_size; j++){
             sum1 += LTI->A[i][j] *data->reference_r[0][j];
@@ -48,39 +45,33 @@ void estimateOutput(LTISystemImpl* LTI, Data* data, Estimation* estimation){
     }
 }
 
-void addInput(Data* data, double next_state[]){
-    unsigned int _input_size = data->state_size;
-    unsigned int _order = data->order -1;
-    int i; int j;
-    for (i = 0; i <_order; i++){
-        for (j = 0; j < _input_size; j++){
-            data->input_u[i+1][j] = data->input_u[i][j];
+void addCommand(Data* data, RSTImpl* K, double next_command[]){
+    double tempA; double tempB;
+    for (int i = 0; i <K ->n_S; i++){
+        tempA = data->input_u[i][0];
+        for (int j = 0; j < data->in_size; j++){
+            tempB = data->input_u[i+1][j];
+            data->input_u[i+1][j] = tempA;
+            tempA = tempB;
         }
     }
-    for (j = 0; j < _input_size; j++){
-        data->input_u[0][j] = next_state[j];
+    for (int j = 0; j < data->in_size; j++){
+        data->input_u[0][j] = next_command[j];
     }
 }
 
-void addState(Data* data, double next_state[]){
-    unsigned int _ref_size = data->ref_size;
-    unsigned int _order = data->order -1;
-    int i; int j;
-    for (i = 0; i <_order; i++){
-        for (j = 0; j < _ref_size; j++){
-            data->reference_r[i+1][j] = data->reference_r[i][j];
+void addOutput (Data* data, RSTImpl* K, double next_output[]){
+    double tempA; double tempB;
+    for (int i = 0; i < K ->n_R; i++){
+        for (int j = 0; j < data ->out_size; j++){
+            tempA = data->output_y[i][j];
+            tempB = data->output_y[i+1][j];
+            data->output_y[i+1][j] = tempA;
+            tempA = tempB;
         }
     }
-    for (j = 0; j < _input_size; j++){
-        data->reference_r[0][j] = next_state[j];
+    for (int i = 0; i < data->out_size; ++i) {
+        data ->output_y[0][i] = next_output[i];
     }
 }
 
-void addOutput (Data* data, double next_output){
-    unsigned int _order = data->order -1;
-    int i;
-    for (i = 0; i < _order; i++){
-        data->output_y[i+1] = data->output_y[i];
-    }
-    data ->output_y[0] = next_output;
-}

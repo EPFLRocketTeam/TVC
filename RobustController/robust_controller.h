@@ -10,7 +10,7 @@
 typedef struct{
     double **R;
     double **S;
-    double **T;
+    double *T;
     unsigned int n_R;
     unsigned int n_S;
     unsigned int n_T;
@@ -29,7 +29,8 @@ typedef struct{
 
 typedef struct {
     double **input_u;
-    double **reference_r;
+    double *reference_r;
+    double **ref_output_y;
     double **output_y;
 
     unsigned int ref_size;
@@ -40,7 +41,8 @@ typedef struct {
 
 typedef struct {
     double * output_y;
-    double **
+    double **error;
+    unsigned int err_size;
 }Estimation;
 
 
@@ -48,11 +50,10 @@ void computeError(RSTImpl* K, Data* data, Estimation* estimation);
 void estimateOutput(LTISystemImpl* LTI, Data* data, Estimation* estimation);
 
 
-void computeState(LTISystemImpl* LTI, Data* data, double next_state[]);
+void computeCommand(LTISystemImpl* LTI, Data* data, double next_state[]);
 
 
-void addInput(Data* data, double next_state[]);
-void addState(Data* data, double next_input[]);
-void addOutput (Data* data, double next_output);
+void addCommand(Data* data, RSTImpl* K, double next_command[]);
+void addOutput (Data* data, RSTImpl* K, double next_output[]);
 
 #endif /* ROBUST_CONTROLLER_H_ */
