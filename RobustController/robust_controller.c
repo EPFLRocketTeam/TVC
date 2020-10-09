@@ -4,44 +4,52 @@
 #include "robust_controller.h"
 
 
-void computeError(RSTImpl* K, Data* data, Estimation* estimation){
-    for (int i = 0; i < data->out_size; i++){
-        double inSum =  estimation->output_y[i] * K ->T[i];
-        double outSum = 0;
 
+void computeCommand(RSTImpl* K, Data* data, double next_command[]){
+
+    for (int i = 0; i < data->u_size; i++){
+        double sum = 0;
+        for (int j = 0; j < K->n_T; j++){
+            for (int k = 0; k < data ->y_size; k++){
+                sum += K->T[i][j][k] * data->ref_output_y[j][k];
+            }
+        }
         for (int j = 0; j < K->n_R; ++j) {
-            outSum += data->output_y[i][j] * K->R[i][j];
+            for (int k = 0; k < data->y_size; ++k) {
+                sum -= K->R[i][j][k] * data->output_y[j][k];
+            }
         }
-        estimation->error[i] = inSum - outSum;
+        for (int j = 0; j < K->n_S; ++j) {
+            for (int k = 1; k < data->u_size; ++k) {
+                sum -= K->S[i][j][k] * data->input_u[j][k];
+            }
+        }
+        double u_ki = sum/(K -> S[i][0][0]);
 
+        if (u_ki > K->max[i]){
+            u_ki = K->max[i];
+        }
+        else if (u_ki < K->min[i]){
+            u_ki = K->min[i];
+        }
+        next_command[i] = u_ki;
     }
 }
 
-void computeCommand(LTISystemImpl* LTI, Data* data, double next_state[]){
-    unsigned int _input_size = LTI->state_size;
-    unsigned int _order = data->order;
-    int i; int j; double sum1; double sum2 = 0;
-    for (i = 0; i < data->ref_size; i++){
-        sum1 = 0;
-        for (j = 0; j < _input_size; j++){
-            sum1 += LTI->A[i][j] *data->reference_r[0][j];
-            sum2 += LTI->B[i][j]*data->input_u[0][j];
-        }
-        next_state[i] = sum1 + sum2;
-    }
-}
-
-void estimateOutput(LTISystemImpl* LTI, Data* data, Estimation* estimation){
-    for (int i = 0; i <data->out_size; i++){
-        int temp = 0;
+void estimateOutput(LTISystemImpl* LTI, Data* data, double next_ref_output[]){
+    for (int i = 0; i < data->y_size; i++){
+        double temp = 0;
         for (int j = 0; j < LTI->_n_A; j++){
-            temp -= LTI->A[i][j]*data->output_y[j][i];
+            for (int k = 0; k < data->y_size; ++k) {
+                temp -= LTI->A[i][j][k]*data->output_y[j][k];
+            }
         }
-
-        for (int k = 0; k < LTI->_n_B; ++k) {
-            temp += LTI->B[i][k]*data->reference_r[k][i];
+        for (int j = 0; j < LTI->_n_B; j++) {
+            for (int k = 0; k < data->u_size; ++k){
+                temp += LTI->B[i][j][k]*data->input_u[j][k];
+            }
         }
-        estimation->output_y[i] = temp;
+        next_ref_output[i] = temp;
     }
 }
 
@@ -49,13 +57,13 @@ void addCommand(Data* data, RSTImpl* K, double next_command[]){
     double tempA; double tempB;
     for (int i = 0; i <K ->n_S; i++){
         tempA = data->input_u[i][0];
-        for (int j = 0; j < data->in_size; j++){
+        for (int j = 0; j < data->u_size; j++){
             tempB = data->input_u[i+1][j];
             data->input_u[i+1][j] = tempA;
             tempA = tempB;
         }
     }
-    for (int j = 0; j < data->in_size; j++){
+    for (int j = 0; j < data->u_size; j++){
         data->input_u[0][j] = next_command[j];
     }
 }
@@ -63,15 +71,30 @@ void addCommand(Data* data, RSTImpl* K, double next_command[]){
 void addOutput (Data* data, RSTImpl* K, double next_output[]){
     double tempA; double tempB;
     for (int i = 0; i < K ->n_R; i++){
-        for (int j = 0; j < data ->out_size; j++){
-            tempA = data->output_y[i][j];
+        tempA = data->output_y[i][0];
+        for (int j = 0; j < data ->y_size; j++){
             tempB = data->output_y[i+1][j];
             data->output_y[i+1][j] = tempA;
             tempA = tempB;
         }
     }
-    for (int i = 0; i < data->out_size; ++i) {
+    for (int i = 0; i < data->y_size; ++i) {
         data ->output_y[0][i] = next_output[i];
+    }
+}
+
+void addRefOutput (Data* data, RSTImpl* K, double next_ref_output[]){
+    double tempA; double tempB;
+    for (int i = 0; i < K ->n_T; i++){
+        tempA = data->ref_output_y[i][0];
+        for (int j = 0; j < data ->y_size; j++){
+            tempB = data->ref_output_y[i+1][j];
+            data->ref_output_y[i+1][j] = tempA;
+            tempA = tempB;
+        }
+    }
+    for (int i = 0; i < data->y_size; ++i) {
+        data ->ref_output_y[0][i] = next_ref_output[i];
     }
 }
 
