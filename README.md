@@ -25,7 +25,6 @@ To launch the code ... use the following codes:
 
 ## Authors
 * De Lajarte Albéric 
-* Hoggett Emma 
 * Lang Guilain
 
 ## Collaborators
